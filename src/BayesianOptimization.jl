@@ -1,13 +1,13 @@
 module BayesianOptimization
 
-using Distributions, GaussianProcesses, BlackBoxOptim, Logging
+using Distributions, GaussianProcesses, BlackBoxOptim, Logging, CMAES
 export rosenbrock, branin, branin_slow
 include("util.jl")
 
 logstream = open(joinpath(tempdir(), "BayesOpt.log"), "a")
 Logging.configure(output = [logstream, STDOUT], level = Logging.DEBUG)
 
-srand(100)
+# srand(100)
 
 type BayesOpt
     f::Function
@@ -19,7 +19,7 @@ type BayesOpt
     model
 end
 
-function optimize!(opt::BayesOpt, maxevals = 1, optim = false, random = false)
+function optimize!(opt::BayesOpt, maxevals = 1, optim = true, random = false)
     np = nprocs()
     i = last_index = length(opt.y) + 1
     # extend opt.X and opt.y to store new data points
@@ -89,13 +89,31 @@ function optimize(f::Function, bounds, c0 = []; maxevals = 100, optim = false, r
     return cmax, opt.ymax, progress(opt)
 end
 
+function cmaoptimize(f::Function, bounds, c0 = []; σ0 = 0.2, maxevals = 100, o...)
+    encoder = BoundEncoder(bounds)
+    x0 = isempty(c0) ? [rand(b) for b in encoder.bounds] : inverse_transform(encoder, c0)
+    lo = [minimum(b) for b in encoder.bounds]
+    hi = [maximum(b) for b in encoder.bounds]
+    g = x -> f(transform(encoder, x))
+    xmax, ymax = CMAES.maximize(g, x0, σ0, lo, hi; maxfevals = maxevals, o...)
+    cmax = transform(encoder, xmax)
+    return cmax, ymax
+end
+
 progress(opt::BayesOpt) = maximums(opt.y)
 
-maximize(f, args...; kwargs...) = optimize(f, args...; kwargs...)
+const maximize = optimize
+
+const cmamaximize = cmaoptimize
 
 function minimize(f, args...; kwargs...)
     cmax, ymax, prog = optimize(x -> -f(x), args...; kwargs...)
     cmin, ymin, prog = cmax, -ymax, -prog
+end
+
+function cmaminimize(f, args...; kwargs...)
+    cmax, ymax = cmaoptimize(x -> -f(x), args...; kwargs...)
+    cmin, ymin = cmax, -ymax
 end
 
 function report(opt::BayesOpt)
@@ -105,4 +123,36 @@ function report(opt::BayesOpt)
     end
 end
 
+# function optimize!(opt::BayesOpt, maxevals = 1, optim = false, random = false)
+#     np = nprocs()
+#     i = last_index = length(opt.y) + 1
+#     # extend opt.X and opt.y to store new data points
+#     opt.X = hcat(opt.X, zeros(size(opt.X, 1), maxevals))
+#     append!(opt.y, fill(-1e10, maxevals))
+#     # pmap like asyncronous update
+#     nextidx() = (idx=i; i+=1; idx)
+#     while true
+#         idx = nextidx()
+#         idx > last_index + maxevals - 1 && break
+#         # sample and transform a new data point
+#         x_new = (idx < np || random) ?
+#                 [rand(b) for b in opt.encoder.bounds] :
+#                 acquire_max(opt.model, opt.encoder.bounds)
+#         x_new = purturb(x_new, opt.X[:, 1:idx], opt.encoder.bounds)
+#         c_new = transform(opt.encoder, x_new)
+#         y_new = opt.f(c_new)
+#         # store the new data point and update the model
+#         opt.X[:, idx], opt.y[idx] = x_new, y_new
+#         yscale = centralize(opt.y[1:idx])
+#         opt.model = GP(opt.X[:, 1:idx], yscale, MeanConst(mean(yscale)), SE(0.0, 0.0), -5.0)
+#         optim && try GaussianProcesses.optimize!(opt.model) end
+#         y_new > opt.ymax && ((opt.xmax, opt.ymax) = (x_new, y_new))
+#         # debug & report
+#         debug("\niteration = $idx, new x = $x_new, y = $y_new")
+#         debug("\niteration = $idx, x_max = $(opt.xmax), ymax = $(opt.ymax)")
+#         report(opt)
+#     end
+#     info("\nOptimization completed:\n xmax = $(opt.xmax), ymax = $(opt.ymax)")
+#     return opt.xmax, opt.ymax
+# end
 end

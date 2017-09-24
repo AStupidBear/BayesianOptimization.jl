@@ -1,9 +1,9 @@
 colvec(x) = reshape(x, length(x), 1)
 
 function centralize!(x, dim=1)
-  _max = maximum(x, dim)
-  _min = minimum(x, dim)
-  x .= (x .- _min) ./ (_max .- _min)
+  𝑚ax = maximum(x, dim)
+  𝑚in = minimum(x, dim)
+  x .= (x .- 𝑚in) ./ (𝑚ax .- 𝑚in)
   x .= 2 .* x .- 1
 end
 
@@ -23,7 +23,7 @@ function slow()
     a = 1.0
     for i in 1:10000
         for j in 1:10000
-            a+=asinh(i+j)
+            a += asinh(i+j)
         end
     end
     return a
@@ -61,41 +61,87 @@ tobound(b) = b
 
 tobound(b::Vector) = 1:length(b)
 
-discretize(c::Range, x) = c[indmin(abs2(x .- c))]
+discretize(cfg::Range, x) = cfg[indmin(abs2(x .- cfg))]
 
-discretize(c::NTuple{2, Number}, x) = x < c[1] ? c[1] : x > c[2] ? c[2] : x
+inverse_discretize(cfg::Range, c) = c
 
-discretize(c::Vector, x) = (i = discretize(1:length(c), x); c[i])
+discretize(cfg::NTuple{2, Number}, x) = x < cfg[1] ? cfg[1] : x > cfg[2] ? cfg[2] : x
 
+inverse_discretize(cfg::NTuple{2, Number}, c) = c
+
+discretize(cfg::Vector, x) = (i = discretize(1:length(cfg), x); cfg[i])
+
+inverse_discretize(cfg::Vector, c) = findfirst(x -> x == c, cfg)
+
+length2(x::String) = 1
+
+length2(x) = length(x)
 
 """
+    using BayesianOptimization; BO = BayesianOptimization
     configs = ((-1, 1), 1, 1:10, ["1", 3, 2])
-    encoder = BoundEncoder(configs)
-    x = [0, 5.3, 3]
-    c = transform(encoder, x)
-    @assert x == inverse_transform(encoder, c)
+    encoder = BO.BoundEncoder(configs)
+    y = [0, 5, 1]
+    x = [2 * (yi - b[1]) / (b[2] - b[1]) - 1 for (yi, b) in zip(y, encoder.orgbounds)]
+    c = BO.transform(encoder, x)
+    @assert x == BO.inverse_transform(encoder, c)
 """
 type BoundEncoder
   configs::Tuple
+  orgbounds::Array{NTuple{2, Float64}}
   bounds::Array{NTuple{2, Float64}}
 end
 
 function BoundEncoder(configs)
   bounds = []
-  for c in configs length(c) > 1 && push!(bounds, tobound(c)) end
+  for cfg in configs length2(cfg) > 1 && push!(bounds, tobound(cfg)) end
   configs = tuple(configs...)
-  bounds = [Float64.(extrema(b)) for b in bounds]
-  BoundEncoder(configs, bounds)
+  orgbounds = [Float64.(extrema(b)) for b in bounds]
+  BoundEncoder(configs, orgbounds, [(-0.5, 0.5) for b in bounds])
 end
 
 function transform(encoder::BoundEncoder, x)
   i, c = 0, []
-  for cc in encoder.configs
-    push!(c, length(cc) > 1 ? (i += 1; discretize(cc, x[i])) : cc)
+  for cfg in encoder.configs
+    if length2(cfg) > 1
+        i += 1
+        b = encoder.orgbounds[i]
+        y = (x[i] + 1) * (b[2] - b[1]) / 2 + b[1]
+        push!(c, discretize(cfg, y))
+    else
+        push!(c,  cfg)
+    end
   end
-  c
+  return c
 end
 
 function inverse_transform(encoder::BoundEncoder, c)
-  x = Float64[c[i] for i in eachindex(c) if length(encoder.configs[i]) > 1]
+  y = [inverse_discretize(cfg, ci) for (cfg, ci) in zip(encoder.configs, c) if length2(cfg) > 1]
+  x = [2 * (yi - b[1]) / (b[2] - b[1]) - 1 for (yi, b) in zip(y, encoder.orgbounds)]
 end
+
+
+# type BoundEncoder
+#   configs::Tuple
+#   bounds::Array{NTuple{2, Float64}}
+# end
+#
+# function BoundEncoder(configs)
+#   bounds = []
+#   for cfg in configs length2(cfg) > 1 && push!(bounds, tobound(cfg)) end
+#   configs = tuple(configs...)
+#   bounds = [Float64.(extrema(b)) for b in bounds]
+#   BoundEncoder(configs, bounds)
+# end
+#
+# function transform(encoder::BoundEncoder, x)
+#   i, c = 0, []
+#   for cfg in encoder.configs
+#     push!(c, length2(cfg) > 1 ? (i += 1; discretize(cfg, x[i])) : cfg)
+#   end
+#   c
+# end
+#
+# function inverse_transform(encoder::BoundEncoder, c)
+#   x = [inverse_discretize(cfg, cc) for (cfg, cc) in zip(encoder.configs, c) if length2(cfg) > 1]
+# end
