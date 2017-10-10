@@ -23,7 +23,7 @@ function slow()
     a = 1.0
     for i in 1:10000
         for j in 1:10000
-            a += asinh(i+j)
+            a += asinh(i + j)
         end
     end
     return a
@@ -34,6 +34,8 @@ function rosenbrock(x)
   z = sum( 100*( x[2:end] .- x[1:end-1].^2 ).^2 .+ ( x[1:end-1] .- 1 ).^2 )
   Float64(z)
 end
+
+rastrigin(x) = 10length(x) + sum(x.^2 - 10cos(2π * x))
 
 # fmin = -1.04
 function branin(v)
@@ -81,7 +83,7 @@ length2(x) = length(x)
     using BayesianOptimization; BO = BayesianOptimization
     configs = ((-1, 1), 1, 1:10, ["1", 3, 2])
     encoder = BO.BoundEncoder(configs)
-    y = [0, 5, 1]
+    y = [0, 7, 1]
     x = [2 * (yi - b[1]) / (b[2] - b[1]) - 1 for (yi, b) in zip(y, encoder.orgbounds)]
     c = BO.transform(encoder, x)
     @assert x == BO.inverse_transform(encoder, c)

@@ -14,6 +14,12 @@ BO.minimize(rosenbrock, bounds, x0; optim = false, maxevals = 30)
 BO.minimize(rosenbrock, bounds, x0; random = true, maxevals = 30)
 BO.cmaminimize(rosenbrock, bounds, x0; σ0 = 0.2, maxevals = 30)
 
+x0, bounds = 0.3 * ones(100), [(-5.12, 5.12) for i in 1:100]
+BO.minimize(rastrigin, bounds, x0; optim = true, maxevals = 30)
+BO.minimize(rastrigin, bounds, x0; optim = false, maxevals = 30)
+BO.minimize(rastrigin, bounds, x0; random = true, maxevals = 30)
+BO.cmaminimize(rastrigin, bounds, x0; σ0 = 0.2, maxevals = 30)
+
 function benchmark(f, bounds, x0; maxevals = 20, restarts = 10)
   loss = [zeros(maxevals, restarts) for i in 1:4]
   for t in 1:restarts
