@@ -65,10 +65,11 @@ end
 
 function expected_improvement(model, ymax)
     function ei(x)
-        μ, Σ = GaussianProcesses.predict_y(model, colvec(x))
+        μ, Σ = GaussianProcesses.predict_f(model, colvec(x))
+        μ, Σ = μ[1], Σ[1]
         Σ == 0 && return 0
         σ = sqrt(Σ); Z = (μ - ymax) / σ
-        res = -((μ - ymax) * cdf(Normal(), Z) + σ * pdf(Normal(), Z))[1]
+        res = -((μ - ymax) * cdf(Normal(), Z) + σ * pdf(Normal(), Z))
     end
     return ei
 end

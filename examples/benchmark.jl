@@ -20,7 +20,7 @@ BO.minimize(rastrigin, bounds, x0; optim = false, maxevals = 30)
 BO.minimize(rastrigin, bounds, x0; random = true, maxevals = 30)
 BO.cmaminimize(rastrigin, bounds, x0; σ0 = 0.2, maxevals = 30)
 
-function benchmark(f, bounds, x0; maxevals = 20, restarts = 10)
+function benchmark(f, bounds, x0; maxevals = 30, restarts = 10)
   loss = [zeros(maxevals, restarts) for i in 1:4]
   for t in 1:restarts
     loss[1][:, t] = BO.minimize(f, bounds, x0; maxevals = maxevals, optim = false)[3]
@@ -40,3 +40,6 @@ benchmark(branin, bounds, x0)
 
 x0, bounds = rand((0, 2), 10), [(0, 2) for i in 1:10]
 benchmark(rosenbrock, bounds, x0)
+
+x0, bounds = 0.3 * ones(100), [(-5.12, 5.12) for i in 1:100]
+benchmark(rastrigin, bounds, x0)

@@ -63,7 +63,7 @@ tobound(b) = b
 
 tobound(b::Vector) = 1:length(b)
 
-discretize(cfg::Range, x) = cfg[indmin(abs2(x .- cfg))]
+discretize(cfg::Range, x) = cfg[indmin(abs2.(x .- cfg))]
 
 inverse_discretize(cfg::Range, c) = c
 
@@ -99,7 +99,7 @@ function BoundEncoder(configs)
   for cfg in configs length2(cfg) > 1 && push!(bounds, tobound(cfg)) end
   configs = tuple(configs...)
   orgbounds = [Float64.(extrema(b)) for b in bounds]
-  BoundEncoder(configs, orgbounds, [(-0.5, 0.5) for b in bounds])
+  BoundEncoder(configs, orgbounds, [(-1.0, 1.0) for b in bounds])
 end
 
 function transform(encoder::BoundEncoder, x)
