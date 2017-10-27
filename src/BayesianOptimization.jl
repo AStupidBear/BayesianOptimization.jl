@@ -1,3 +1,5 @@
+__precompile__(true)
+
 module BayesianOptimization
 
 using Distributions, GaussianProcesses, BlackBoxOptim, Logging, CMAES
