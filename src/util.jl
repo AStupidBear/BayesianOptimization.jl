@@ -1,22 +1,22 @@
 colvec(x) = reshape(x, length(x), 1)
 
 function centralize!(x, dim=1)
-  𝑚ax = maximum(x, dim)
-  𝑚in = minimum(x, dim)
-  x .= (x .- 𝑚in) ./ (𝑚ax .- 𝑚in)
-  x .= 2 .* x .- 1
+    𝑚ax = maximum(x, dim)
+    𝑚in = minimum(x, dim)
+    x .= (x .- 𝑚in) ./ (𝑚ax .- 𝑚in)
+    x .= 2 .* x .- 1
 end
 
 centralize(x, dim = 1) = centralize!(deepcopy(x), dim)
 
 function maximums(x)
-  maxs = similar(x)
-  xmax = x[1]
-  @inbounds for i = eachindex(x)
-    x[i] > xmax && (xmax = x[i])
-    maxs[i] = xmax
-  end
-  maxs
+    maxs = similar(x)
+    xmax = x[1]
+    @inbounds for i = eachindex(x)
+        x[i] > xmax && (xmax = x[i])
+        maxs[i] = xmax
+    end
+    maxs
 end
 
 function slow()
@@ -30,9 +30,9 @@ function slow()
 end
 
 function rosenbrock(x)
-  x = collect(x)
-  z = sum( 100*( x[2:end] .- x[1:end-1].^2 ).^2 .+ ( x[1:end-1] .- 1 ).^2 )
-  Float64(z)
+    x = collect(x)
+    z = sum( 100*( x[2:end] .- x[1:end-1].^2 ).^2 .+ ( x[1:end-1] .- 1 ).^2 )
+    Float64(z)
 end
 
 rastrigin(x) = 10length(x) + sum(x.^2 - 10cos(2π * x))
@@ -49,14 +49,14 @@ branin_slow(v) = (slow(); branin(v))
 Base.rand(b::NTuple{2, Real}, dims...) = b[1] + rand(dims...) * (b[2] - b[1])
 
 function purturb(x, X, bounds)
-  for j in 1:size(X, 2)
-    if isapprox(x, X[:, j])
-      for i in 1:length(x)
-        x[i] += rand(bounds[i])
-      end
+    for j in 1:size(X, 2)
+        if isapprox(x, X[:, j])
+            for i in 1:length(x)
+                x[i] += rand(bounds[i])
+            end
+        end
     end
-  end
-  x
+    x
 end
 
 tobound(b) = b
@@ -80,46 +80,46 @@ length2(x::String) = 1
 length2(x) = length(x)
 
 """
-    using BayesianOptimization; BO = BayesianOptimization
-    configs = ((-1, 1), 1, 1:10, ["1", 3, 2])
-    encoder = BO.BoundEncoder(configs)
-    y = [0, 7, 1]
-    x = [2 * (yi - b[1]) / (b[2] - b[1]) - 1 for (yi, b) in zip(y, encoder.orgbounds)]
-    c = BO.transform(encoder, x)
-    @assert x == BO.inverse_transform(encoder, c)
+using BayesianOptimization; BO = BayesianOptimization
+configs = ((-1, 1), 1, 1:10, ["1", 3, 2])
+encoder = BO.BoundEncoder(configs)
+y = [0, 7, 1]
+x = [2 * (yi - b[1]) / (b[2] - b[1]) - 1 for (yi, b) in zip(y, encoder.orgbounds)]
+c = BO.transform(encoder, x)
+@assert x == BO.inverse_transform(encoder, c)
 """
 type BoundEncoder
-  configs::Tuple
-  orgbounds::Array{NTuple{2, Float64}}
-  bounds::Array{NTuple{2, Float64}}
+    configs::Tuple
+    orgbounds::Array{NTuple{2, Float64}}
+    bounds::Array{NTuple{2, Float64}}
 end
 
 function BoundEncoder(configs)
-  bounds = []
-  for cfg in configs length2(cfg) > 1 && push!(bounds, tobound(cfg)) end
-  configs = tuple(configs...)
-  orgbounds = [Float64.(extrema(b)) for b in bounds]
-  BoundEncoder(configs, orgbounds, [(-1.0, 1.0) for b in bounds])
+    bounds = []
+    for cfg in configs length2(cfg) > 1 && push!(bounds, tobound(cfg)) end
+    configs = tuple(configs...)
+    orgbounds = [Float64.(extrema(b)) for b in bounds]
+    BoundEncoder(configs, orgbounds, [(-1.0, 1.0) for b in bounds])
 end
 
 function transform(encoder::BoundEncoder, x)
-  i, c = 0, []
-  for cfg in encoder.configs
-    if length2(cfg) > 1
-        i += 1
-        b = encoder.orgbounds[i]
-        y = (x[i] + 1) * (b[2] - b[1]) / 2 + b[1]
-        push!(c, discretize(cfg, y))
-    else
-        push!(c,  cfg)
+    i, c = 0, []
+    for cfg in encoder.configs
+        if length2(cfg) > 1
+            i += 1
+            b = encoder.orgbounds[i]
+            y = (x[i] + 1) * (b[2] - b[1]) / 2 + b[1]
+            push!(c, discretize(cfg, y))
+        else
+            push!(c,  cfg)
+        end
     end
-  end
-  return c
+    return c
 end
 
 function inverse_transform(encoder::BoundEncoder, c)
-  y = [inverse_discretize(cfg, ci) for (cfg, ci) in zip(encoder.configs, c) if length2(cfg) > 1]
-  x = [2 * (yi - b[1]) / (b[2] - b[1]) - 1 for (yi, b) in zip(y, encoder.orgbounds)]
+    y = [inverse_discretize(cfg, ci) for (cfg, ci) in zip(encoder.configs, c) if length2(cfg) > 1]
+    x = [2 * (yi - b[1]) / (b[2] - b[1]) - 1 for (yi, b) in zip(y, encoder.orgbounds)]
 end
 
 

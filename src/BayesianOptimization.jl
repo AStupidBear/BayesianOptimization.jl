@@ -36,8 +36,8 @@ function optimize!(opt::BayesOpt, maxevals = 1, optim = true, random = false)
                 idx > last_index + maxevals - 1 && break
                 # sample and transform a new data point
                 x_new = (idx < np || random) ?
-                        [rand(b) for b in opt.encoder.bounds] :
-                        acquire_max(opt.model, opt.encoder.bounds)
+                [rand(b) for b in opt.encoder.bounds] :
+                acquire_max(opt.model, opt.encoder.bounds)
                 x_new = purturb(x_new, opt.X[:, 1:idx], opt.encoder.bounds)
                 c_new = transform(opt.encoder, x_new)
                 y_new = remotecall_fetch(opt.f, p, c_new)
@@ -121,8 +121,8 @@ end
 
 function report(opt::BayesOpt)
     if isdefined(Main, :Plots)
-      Main.plot(progress(opt))
-      Main.savefig(joinpath(tempdir(), "BayesOpt.html"))
+        Main.plot(progress(opt))
+        Main.savefig(joinpath(tempdir(), "BayesOpt.html"))
     end
 end
 
