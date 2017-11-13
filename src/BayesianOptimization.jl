@@ -6,7 +6,8 @@ using Distributions, GaussianProcesses, BlackBoxOptim, Logging, CMAES
 export rosenbrock, branin, branin_slow, rastrigin
 include("util.jl")
 
-logstream = open(joinpath(tempdir(), "BayesOpt.log"), "a")
+fn = joinpath(tempdir(), "BayesOpt" * "_" * Dates.format(now(), "yyyy-mm-dd_HH-MM-SS-s") * ".log")
+logstream = open(fn, "a")
 Logging.configure(output = [logstream, STDOUT], level = Logging.DEBUG)
 
 # srand(100)
