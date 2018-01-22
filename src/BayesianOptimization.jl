@@ -8,7 +8,7 @@ include("util.jl")
 
 # srand(100)
 
-type BayesOpt
+mutable struct BayesOpt
     f::Function
     X::Array{Float64, 2}
     y::Array{Float64, 1}
