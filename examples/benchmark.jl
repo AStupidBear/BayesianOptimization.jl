@@ -1,5 +1,4 @@
-using BayesianOptimization; reload("BayesianOptimization")
-BO = BayesianOptimization
+using BayesianOptimization; BO = BayesianOptimization
 
 x0, bounds = rand((0, 1), 2), [(0, 1), (0, 1)]
 BO.minimize(branin, bounds, x0; optim = true, maxevals = 10)

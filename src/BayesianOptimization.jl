@@ -2,11 +2,9 @@ __precompile__(true)
 
 module BayesianOptimization
 
-using Distributions, GaussianProcesses, BlackBoxOptim, Logging, CMAES
+using Distributions, GaussianProcesses, BlackBoxOptim, CMAES
 export rosenbrock, branin, branin_slow, rastrigin
 include("util.jl")
-
-Logging.configure(level = Logging.DEBUG)
 
 # srand(100)
 
@@ -27,7 +25,7 @@ function optimize!(opt::BayesOpt, maxevals = 1, optim = true, random = false)
     opt.X = hcat(opt.X, zeros(size(opt.X, 1), maxevals))
     append!(opt.y, fill(-1e10, maxevals))
     # pmap like asyncronous update
-    nextidx() = (idx=i; i+=1; idx)
+    nextidx() = (idx = i; i += 1; idx)
     @sync for p = 1:np
         if p != myid() || np == 1
             @async while true
@@ -47,13 +45,12 @@ function optimize!(opt::BayesOpt, maxevals = 1, optim = true, random = false)
                 optim && try GaussianProcesses.optimize!(opt.model) end
                 y_new > opt.ymax && ((opt.xmax, opt.ymax) = (x_new, y_new))
                 # debug & report
-                debug("\niteration = $idx, new x = $x_new, y = $y_new")
-                debug("\niteration = $idx, x_max = $(opt.xmax), ymax = $(opt.ymax)")
+                print_with_color(:blue, "iteration = $idx,  x_new = $x_new, y_new = $y_new, x_max = $(opt.xmax), y_max = $(opt.ymax)\n")
                 report(opt)
             end
         end
     end
-    info("\nOptimization completed:\n xmax = $(opt.xmax), ymax = $(opt.ymax)")
+    print_with_color(:green, "\nOptimization completed: xmax = $(opt.xmax), ymax = $(opt.ymax)\n")
     return opt.xmax, opt.ymax
 end
 
@@ -149,12 +146,7 @@ end
 #         opt.model = GP(opt.X[:, 1:idx], yscale, MeanConst(mean(yscale)), SE(0.0, 0.0), -5.0)
 #         optim && try GaussianProcesses.optimize!(opt.model) end
 #         y_new > opt.ymax && ((opt.xmax, opt.ymax) = (x_new, y_new))
-#         # debug & report
-#         debug("\niteration = $idx, new x = $x_new, y = $y_new")
-#         debug("\niteration = $idx, x_max = $(opt.xmax), ymax = $(opt.ymax)")
-#         report(opt)
-#     end
-#     info("\nOptimization completed:\n xmax = $(opt.xmax), ymax = $(opt.ymax)")
+##     end
 #     return opt.xmax, opt.ymax
 # end
 end
