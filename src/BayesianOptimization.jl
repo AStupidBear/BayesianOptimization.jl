@@ -116,6 +116,8 @@ const maximize = optimize
 
 const cmamaximize = cmaoptimize
 
+const gridmaximize = gridoptimize
+
 function minimize(f, args...; kwargs...)
     cmax, ymax, prog = optimize(x -> -f(x), args...; kwargs...)
     cmin, ymin, prog = cmax, -ymax, -prog
