@@ -18,15 +18,15 @@ mutable struct BayesOpt
     model
 end
 
-function optimize!(opt::BayesOpt, maxevals = 1, optim = true, random = false)
-    np = nprocs()
+function optimize!(opt::BayesOpt, pool, maxevals, optim, random)
+    np = length(pool)
     i = last_index = length(opt.y) + 1
     # extend opt.X and opt.y to store new data points
     opt.X = hcat(opt.X, zeros(size(opt.X, 1), maxevals))
     append!(opt.y, fill(-1e10, maxevals))
     # pmap like asyncronous update
     nextidx() = (idx = i; i += 1; idx)
-    @sync for p = 1:np
+    @sync for p in pool
         if p != myid() || np == 1
             @async while true
                 idx = nextidx()
@@ -72,7 +72,7 @@ function expected_improvement(model, ymax)
     return ei
 end
 
-function optimize(f::Function, bounds, c0 = []; maxevals = 100, optim = false, random = false, o...)
+function optimize(f::Function, bounds, c0 = []; pool = workers(),  maxevals = 100, optim = false, random = false, o...)
     encoder = BoundEncoder(bounds)
     X, y = zeros(length(encoder.bounds), 1), zeros(1)
     # evaluate on the initial point
@@ -83,7 +83,7 @@ function optimize(f::Function, bounds, c0 = []; maxevals = 100, optim = false, r
     X[:, 1], y[1] = xmax, ymax
     # sample the rest points
     opt = BayesOpt(f, X, y, xmax, ymax, encoder, GP(X[:, 1:1], [0.0], MeanZero(), SE(0.0, 0.0)))
-    optimize!(opt, maxevals - 1, optim, random)
+    optimize!(opt, pool, maxevals - 1, optim, random)
     cmax = transform(opt.encoder, opt.xmax)
     return cmax, opt.ymax, progress(opt)
 end
