@@ -3,3 +3,4 @@ Distributions
 GaussianProcesses
 BlackBoxOptim
 Logging
+IterTools

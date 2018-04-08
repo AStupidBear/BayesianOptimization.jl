@@ -2,7 +2,7 @@ __precompile__(true)
 
 module BayesianOptimization
 
-using Distributions, GaussianProcesses, BlackBoxOptim, CMAES
+using Distributions, GaussianProcesses, BlackBoxOptim, CMAES, IterTools
 export rosenbrock, branin, branin_slow, rastrigin
 include("util.jl")
 
@@ -99,6 +99,17 @@ function cmaoptimize(f::Function, bounds, c0 = []; σ0 = 0.2, maxevals = 100, o.
     return cmax, ymax
 end
 
+function gridoptimize(f::Function, bounds, c0 = []; pool = workers(), nbin = 10, o...)
+    bounds = ([isa(b, AbstractString) ? [b] : 
+                isa(b, Tuple{Number, Number}) ? linspace(b..., nbin) : 
+                b for b in bounds]...)
+    cs = product(bounds...)
+    ys = pmap(WorkerPool(pool), f, cs)
+    ymax, imax = findmax(ys)
+    cmax = nth(cs, imax)
+    return cmax, ymax, cs, ys
+end
+
 progress(opt::BayesOpt) = maximums(opt.y)
 
 const maximize = optimize
@@ -115,10 +126,15 @@ function cmaminimize(f, args...; kwargs...)
     cmin, ymin = cmax, -ymax
 end
 
+function gridminimize(f, args...; kwargs...)
+    cmax, ymax, cs, ys = gridoptimize(x -> -f(x), args...; kwargs...)
+    cmin, ymin, cs, ys = cmax, -ymax, cs, -ys
+end
+
 function report(opt::BayesOpt)
     if isdefined(Main, :Plots)
         Main.plot(progress(opt))
-        Main.savefig(joinpath(tempdir(), "BayesOpt.html"))
+        Main.savefig("BayesOpt.html")
     end
 end
 
